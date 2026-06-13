@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+.env
+**/.env
+.venv/
+venv/
+.pytest_cache/
+
+# Node
+node_modules/
+.next/
+out/
+
+# Docker
+postgres_data/
+
+# Local data (not in repo)
+ansar_users.json
+data/legal/
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# Planning / reference (not part of the app)
+al-ansar_hackathon_demo_e55fce6d.plan.md
+initial_jottings.md
+seed_data.md
+seed.sql
+seed_legal.sql
+seed_reports.sql
+Diwan_Civic_Track.docx.pdf
+regulations /

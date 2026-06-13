@@ -1,0 +1,63 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: alansar-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-alansar}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-alansar}
+      POSTGRES_DB: ${POSTGRES_DB:-alansar}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./backend/db/migrations/002_crisis_reports.sql:/docker-entrypoint-initdb.d/02-crisis-reports.sql:ro
+      - ./backend/db/migrations/003_legal_corpus.sql:/docker-entrypoint-initdb.d/03-legal-corpus.sql:ro
+      - ./backend/db/migrations/004_matched_users.sql:/docker-entrypoint-initdb.d/04-matched-users.sql:ro
+      - ./backend/db/migrations/005_tasks_review.sql:/docker-entrypoint-initdb.d/05-tasks-review.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-alansar} -d ${POSTGRES_DB:-alansar}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: alansar-backend
+    env_file:
+      - ./backend/.env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-alansar}:${POSTGRES_PASSWORD:-alansar}@postgres:5432/${POSTGRES_DB:-alansar}
+      AL_ANSAR_ROOT: /workspace
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+      - .:/workspace:ro
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: alansar-frontend
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+      INTERNAL_API_URL: http://backend:8000
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    command: npm run dev
+
+volumes:
+  postgres_data:
